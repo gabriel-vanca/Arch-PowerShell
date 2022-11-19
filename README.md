@@ -41,5 +41,5 @@ Note: The script requires Homebrew to be already installed.
 Open a PowerShell terminal with administrator priviledges and run the following:
 
 ```powershell
-wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/PowerShell/Install/Configure/Configure.sh | pwsh
+Invoke-RestMethod https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/PowerShell/Install/Configure/Configure.sh | pwsh
 ```
