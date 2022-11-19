@@ -16,7 +16,6 @@ if($IsWindows) {
         Write-Host "Linux deployment detected. Installing via Github"
         wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-linux-amd64 -O /usr/local/bin/oh-my-posh
         sudo chmod +x /usr/local/bin/oh-my-posh
-        #Source: https://ohmyposh.dev/docs/installation/linux
     } else {
         if($IsMacOS) {
             Write-Host "MacOS deployment detected. Installing via Homebrew"

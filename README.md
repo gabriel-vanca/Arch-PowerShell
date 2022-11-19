@@ -38,8 +38,10 @@ Note: The script requires Homebrew to be already installed.
 
 ## 2. Configure PowerShell
 
-Open a PowerShell terminal with administrator priviledges and run the following:
+Open a PowerShell terminal and run the following commands.
+
+Note: On Windows you need to run this from a terminal with admin priviledges. On Linux, make sure the command is not run from the root user as in that case the theme will only be available for the root user.
 
 ```powershell
-Invoke-RestMethod https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/PowerShell/Install/Configure/Configure.sh | pwsh
+Invoke-RestMethod https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/PowerShell/Install/Configure/Configure.ps1 | pwsh
 ```
