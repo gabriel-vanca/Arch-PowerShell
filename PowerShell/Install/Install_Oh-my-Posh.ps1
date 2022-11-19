@@ -8,7 +8,7 @@ if($IsWindows) {
         Write-Host "Windows workstation (Windows 10/11) deployment detected. Installing via winget"
         winget install JanDeDobbeleer.OhMyPosh -s winget
     } else {
-        Write-Host "Windows server deployment detected. Installing via chocolatey"
+        Write-Host "Windows Server deployment detected. Installing via Chocolatey"
         choco install oh-my-posh -y
     }
 } else {

@@ -8,7 +8,7 @@ if($osInfo.ProductType -eq 1) {
     winget search Microsoft.PowerShell
     winget install --id Microsoft.Powershell --source winget
 } else {
-    Write-Host "Windows server deployment detected. Installing via chocolatey"
+    Write-Host "Windows Server deployment detected. Installing via Chocolatey"
     choco install oh-my-posh -y
 }
 
