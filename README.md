@@ -16,7 +16,7 @@ Open a Powershell terminal with administrator priviledges and run the following:
 wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/PowerShell/Install/Core/Windows_Install_Core.ps1 | powershell
 ```
 
-Note: For Windows Server deployments, the script requires Chocolatey to be already installed.
+Note: For Windows Server deployments, the script requires Chocolatey to be already installed. Non-server deplyments will use winget (also known as App Installer) which comes bundled with Windows 11 and the latest versions of Windows 10 by default.
 
 ### Ubuntu
 
