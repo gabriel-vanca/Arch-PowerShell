@@ -10,7 +10,7 @@
 
 ### Windows
 
-Open a Powershell terminal with administrator priviledges and run the following:
+Open a classic PowerShell terminal with administrator priviledges and run the following:
 
 ```powershell
 wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/PowerShell/Install/Core/Windows_Install_Core.ps1 | powershell
@@ -35,3 +35,11 @@ sudo wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/m
 ```
 
 Note: The script requires Homebrew to be already installed.
+
+## 2. Configure PowerShell
+
+Open a PowerShell terminal with administrator priviledges and run the following:
+
+```powershell
+wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/PowerShell/Install/Configure/Configure.sh | pwsh
+```
