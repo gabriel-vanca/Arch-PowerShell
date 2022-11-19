@@ -13,5 +13,10 @@ sudo dpkg -i packages-microsoft-prod.deb
 sudo apt-get update
 # Install PowerShell
 sudo apt-get install -y powershell
+# Make PowerShell the default shell
+sudo chsh --shell /usr/bin/pwsh
+# Check default shell
+echo $SHELL
+echo $env:SHELL
 # Start PowerShell
 pwsh
