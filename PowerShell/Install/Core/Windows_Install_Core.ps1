@@ -11,3 +11,6 @@ if($osInfo.ProductType -eq 1) {
     Write-Host "Windows server deployment detected. Installing via chocolatey"
     choco install oh-my-posh -y
 }
+
+Write-Host "Switching to PowerShell Core"
+pwsh

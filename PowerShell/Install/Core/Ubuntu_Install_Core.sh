@@ -18,5 +18,5 @@ sudo chsh --shell /usr/bin/pwsh
 # Check default shell
 echo $SHELL
 echo $env:SHELL
-# Start PowerShell
+# Switch to PowerShell
 pwsh

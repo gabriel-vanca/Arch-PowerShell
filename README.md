@@ -13,15 +13,25 @@
 Open a Powershell terminal with administrator priviledges and run the following:
 
 ```powershell
-wget -O - https://raw.githubusercontent.com/<username>/<project>/<branch>/<path>/<file> | powershell
+wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/PowerShell/Install/Core/Windows_Install_Core.ps1 | powershell
 ```
 
-Note: For Windows Server deployments, the script assumed Chocolatey is already installed.
+Note: For Windows Server deployments, the script requires Chocolatey to be already installed.
 
 ### Ubuntu
 
 Open a terminal and run the following with administrator priviledges:
 
 ```bash
-sudo wget -O - https://raw.githubusercontent.com/<username>/<project>/<branch>/<path>/<file> | bash
+sudo wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/PowerShell/Install/Core/Ubuntu_Install_Core.sh | bash
 ```
+
+### MacOS
+
+Open a terminal and run the following with administrator priviledges:
+
+```bash
+sudo wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/PowerShell/Install/Core/MacOS_Install_Core.sh | bash
+```
+
+Note: The script requires Homebrew to be already installed.
