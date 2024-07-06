@@ -67,5 +67,5 @@ Write-Host "Step 2: Install/Update Oh-my-Posh"
 Invoke-RestMethod "https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Components/Install_Oh-my-Posh.ps1" | Invoke-Expression
 
 
-Write-Host "Step 3: Deploy Powershell fonts"
+Write-Host "Step 3: Deploy Powershell Fonts"
 Invoke-RestMethod "https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Components/Install_Fonts.ps1" | Invoke-Expression

@@ -8,34 +8,35 @@
 
 ### Windows
 
-Open a classic PowerShell terminal with administrator priviledges and run the following:
+Open a classic PowerShell terminal with administrator privileges and run the following:
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned
-wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/PowerShell/Install/Core/Windows_Install_Core.ps1 | powershell
+wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Core/Windows_Install_Core.ps1 | powershell
 ```
 
 Notes:
-
-* For Windows Server deployments, the script requires Chocolatey to be already installed. Non-server deplyments will use winget (also known as App Installer) which comes bundled with Windows 11 and the latest versions of Windows 10 by default.
+* This will attempt to use WinGet, which comes included in Windows 11, Windows Server 2025 and latest builds of Windows 10, in order to install/update PowerShell Core.
+* If WinGet is not present (for example you're running a pre-2025 Windows Server Deployment or an older Windows workstation version), the script will try to use Chocolatey instead to install PowerShell Core.
+* If you'd prefer to use WinGet, you can use this other script to install it: https://github.com/gabriel-vanca/WinGet
 * For workstations, Windows 10 1809+ or Windows 11 is required. For Servers, Windows Server 2012 R2 or later is required.
 
 ### Ubuntu
 
-Open a terminal and run the following with root priviledges:
+Open a terminal and run the following with root privileges:
 
 ```bash
-sudo wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/PowerShell/Install/Core/Ubuntu_Install_Core.sh | bash
+sudo wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Core/Ubuntu_Install_Core.sh | bash
 ```
 
 Note: Version 18.04 or above is required.
 
 ### MacOS
 
-Open a terminal and run the following with administrator priviledges:
+Open a terminal and run the following with administrator privileges:
 
 ```bash
-sudo wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/PowerShell/Install/Core/MacOS_Install_Core.sh | bash
+sudo wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Core/MacOS_Install_Core.sh | bash
 ```
 
 Note:
@@ -57,7 +58,7 @@ Open a PowerShell terminal and run the following commands.
 
 Notes:
 
-* On Windows you need to run this from a terminal with admin priviledges.
+* On Windows you need to run this from a terminal with admin privileges.
 * On Linux, make sure the command is **not** run from the root user as in that case the theme will only be available for the root user.
 
 ```powershell
@@ -70,9 +71,9 @@ oh-my-posh font install FiraCode
 
 ```
 
-# Included Tech Fonts (Coding and Terminal Fonts)
+# Included Tech Fonts
 
-The following fonts will be installed automatically
+The following fonts that were designed for coding and terminal usage will be installed automatically.
 
 ## MonaLisa
 
@@ -92,9 +93,9 @@ The following fonts will be installed automatically
 
 ![1692311120520](image/README/1692311120520.png)
 
-[Source Code from Adobe Originals](https://fonts.adobe.com/fonts/source-code-pro)
+[Source Code Pro - Adobe Fonts](https://fonts.adobe.com/fonts/source-code-pro)
 
-[https://github.com/adobe-fonts/source-code-pro/releases](https://github.com/adobe-fonts/source-code-pro/releases)
+[Source Code Pro - Adobe GitHub](https://github.com/adobe-fonts/source-code-pro/releases)
 
 ## Cousine
 
