@@ -19,4 +19,6 @@ sudo chsh --shell /usr/bin/pwsh
 echo $SHELL
 echo $env:SHELL
 # Switch to PowerShell
+pwsh Write-Host "List current Powershell Core version" -ForegroundColor DarkGreen
+pwsh {$PSVersionTable}
 pwsh

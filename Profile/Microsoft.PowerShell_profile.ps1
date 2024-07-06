@@ -2,8 +2,8 @@
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
 Import-Module -Name Terminal-Icons
-Import-Module posh-git
-Import-Module PSReadLine
+Import-Module -Name posh-git
+Import-Module -Name PSReadLine
 
 # Enable support for the posh-git module for autocompletion
 $env:POSH_GIT_ENABLED = $true
