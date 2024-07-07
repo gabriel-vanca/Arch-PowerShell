@@ -49,41 +49,21 @@ Write-Host "Proceeding with installation"
 
 # ($NULL -eq $IsWindows) checks for Windows Sandbox enviroment
 if($IsWindows -or ($NULL -eq $IsWindows)) {
-    $wingetBasedInstall = $False
-    $chocoBasedInstall = $False
-    $osInfo = Get-CimInstance -ClassName Win32_OperatingSystem
-    if($osInfo.ProductType -eq 1) {
-        Write-Host "Windows workstation (Windows 10/11) deployment detected."
-        $wingetBasedInstall = $True
+    if (Get-AppPackage -name "Microsoft.DesktopAppInstaller") {
+        Write-Host "WinGet present" -ForegroundColor DarkGreen
     } else {
-        Write-Host "Windows Server deployment detected."
+        Write-Host "WinGet missing..."  -ForegroundColor DarkYellow
+        Write-Host "Checking for Chocolatey presence..."  -ForegroundColor DarkYellow
+        Start-Sleep 10
 
-        if (Get-AppPackage -name "Microsoft.DesktopAppInstaller") {
-            Write-Host "WinGet present" -ForegroundColor DarkGreen
-            $wingetBasedInstall = $True
-        } else {
-            Write-Host "WinGet missing"  -ForegroundColor DarkYellow
-            $wingetBasedInstall = $False
-            # Expected path of the choco.exe file.
-            $chocoInstallPath = "$Env:ProgramData/chocolatey/choco.exe"
-            if (Test-Path "$chocoInstallPath") {
-                Write-Host "Chocolatey is present."  -ForegroundColor DarkGreen
-                $chocoBasedInstall = $True
-            } else {
-                Write-Host "Chocolatey is missing."  -ForegroundColor DarkMagenta
-                $chocoBasedInstall = $False
-            }
-        }
-    }
-
-    if($wingetBasedInstall) {
-        Write-Host "Installing oh-my-posh via WinGet" -ForegroundColor DarkYellow
-        winget install -e -s --accept-source-agreements --accept-package-agreements JanDeDobbeleer.OhMyPosh
-    } else {
-        if($chocoBasedInstall) {
+        # Expected path of the choco.exe file.
+        $chocoInstallPath = "$Env:ProgramData/chocolatey/choco.exe"
+        if (Test-Path "$chocoInstallPath") {
+            Write-Host "Chocolatey is present."  -ForegroundColor DarkGreen
             Write-Host "Installing oh-my-posh via Chocolatey" -ForegroundColor DarkYellow
             choco install oh-my-posh -y
         } else {
+            Write-Host "Chocolatey is missing."  -ForegroundColor DarkMagenta
             Write-Host "Installing oh-my-posh manually via script" -ForegroundColor DarkYellow
             Start-Sleep -Seconds 5
             Set-ExecutionPolicy Bypass -Scope Process -Force; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://ohmyposh.dev/install.ps1'))
@@ -92,8 +72,8 @@ if($IsWindows -or ($NULL -eq $IsWindows)) {
 } else {
     if($IsLinux) {
         Write-Host "Linux deployment detected."
+        Write-Host "Installing via Homebrew" -ForegroundColor DarkYellow
         try {
-            Write-Host "Installing via Homebrew" -ForegroundColor DarkYellow
             brew install jandedobbeleer/oh-my-posh/oh-my-posh
             brew update && brew upgrade oh-my-posh
         }
@@ -106,8 +86,18 @@ if($IsWindows -or ($NULL -eq $IsWindows)) {
         if($IsMacOS) {
             Write-Host "MacOS deployment detected."
             Write-Host "Installing via Homebrew" -ForegroundColor DarkYellow
-            brew install jandedobbeleer/oh-my-posh/oh-my-posh
-            brew update && brew upgrade oh-my-posh
+            try {
+                brew install jandedobbeleer/oh-my-posh/oh-my-posh
+                brew update && brew upgrade oh-my-posh
+            } catch {
+                Write-Error "Installing via Homebrew failed"
+                Write-Host "Installing manually" -ForegroundColor DarkYellow
+                curl -s https://ohmyposh.dev/install.sh | bash -s
+            }
+        } else {
+            Write-Error "Unknown deployment"
+            Write-Host "Installing manually" -ForegroundColor DarkYellow
+            curl -s https://ohmyposh.dev/install.sh | bash -s
         }
     }
 }

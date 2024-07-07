@@ -11,6 +11,8 @@ $env:POSH_GIT_ENABLED = $true
 # Shows navigable menu of all options when hitting Tab
 Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
 
+Set-PSReadlineOption -ShowToolTips
+
 # Set Theme
 oh-my-posh init pwsh --config "$HOME\Themes\PowerShell\Arch_Theme.omp.json" | Invoke-Expression
 
@@ -18,15 +20,124 @@ oh-my-posh init pwsh --config "$HOME\Themes\PowerShell\Arch_Theme.omp.json" | In
 # oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\Arch_Theme.omp.json" | Invoke-Expression
 # oh-my-posh init pwsh --config 'https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/jandedobbeleer.omp.json' | Invoke-Expression
 
+# Aliases
+# https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/set-alias
+Set-Alias -Name vscode -Value code
+Set-Alias -Name clearDNS -Value Clear-DnsClientCache
+Set-Alias -Name flushDNS -Value Clear-DnsClientCache
+
+# Profile management
+function reload { & $PROFILE }
+$ProfileDirectory = $profile | split-path -Parent
+function Edit-Profile {
+    code $PROFILE
+}
+
+# Navigation Shortcuts
+function documents { Set-Location -Path $HOME\Documents }
+function desktop { Set-Location -Path $HOME\Desktop }
+
 # Useful shortcuts for traversing directories
-function cd...  { Set-Location ..\.. }
-function cd.... { Set-Location ..\..\.. }
+function ..  { Set-Location .. }
+function ...  { Set-Location ..\.. }
+function .... { Set-Location ..\..\.. }
 
-# Reload default Profile
-function reload { . $PROFILE }
+# Enhanced Listing
+function la { Get-ChildItem -Path . -Force | Format-Table -AutoSize }
+function ll { Get-ChildItem -Path . -Force -Hidden | Format-Table -AutoSize }
 
-# Compute file hashes - useful for checking successful downloads 
-function md5    { Get-FileHash -Algorithm MD5 $args }
-function sha1   { Get-FileHash -Algorithm SHA1 $args }
-function sha256 { Get-FileHash -Algorithm SHA256 $args }
+# Test Command Existence
+function Test-CommandExists {
+    param($command)
+    $exists = $null -ne (Get-Command $command -ErrorAction SilentlyContinue)
+    return $exists
+}
 
+function admin {
+    if ($args.Count -gt 0) {
+        $argList = "& '$args'"
+        Start-Process wt -Verb runAs -ArgumentList "pwsh.exe -NoExit -Command $argList"
+    } else {
+        Start-Process wt -Verb runAs
+    }
+}
+
+# Get my external IP
+function Get-ExternalIp {(Invoke-WebRequest http://ifconfig.me/ip).Content}
+Set-Alias -Name myip -Value Get-ExternalIp -Description "Return external IP"
+
+# Function to test internet connectivity
+function Test-InternetConnection {
+    try {
+        Test-Connection -ComputerName 1.1.1.1 -Count 1 -ErrorAction Stop
+        return $True
+    }
+    catch {
+        Write-Warning "Internet connection is not available."
+        return $False
+    }
+}
+
+function uptime {
+    net statistics workstation | Select-String "since" | ForEach-Object { $_.ToString().Replace('Statistics since ', '') }
+}
+
+# Quick File Creation
+function newfile { 
+    # newfile test1.txt, test2.txt, test3.txt
+    param (
+        [Parameter(Mandatory)]
+        $fileNames
+    ) 
+    foreach ($fileName in $fileNames) { 
+        New-Item -ItemType "file" -Path . -Name $fileName 
+    }
+}
+
+# Quick Directory Creation
+function newdir { 
+    # newdir test1, test2, test3 
+    param (
+        [Parameter(Mandatory)]
+        $dirNames
+    )
+    foreach ($dirName in $dirNames) { 
+        New-Item -ItemType "directory" -Path . -Name $dirName 
+    }
+}
+
+# Find files recursively
+function findfile($search) {
+    Get-ChildItem -Recurse -ErrorAction SilentlyContinue *.* | Where-Object { $_.name -like "*$search*" }
+}
+
+#Find files recursively, including hidden
+function findhfile($search) {
+    Get-ChildItem -Recurse -Force -ErrorAction SilentlyContinue *.* | Where-Object { $_.name -like "*$search*" }
+}
+
+function unzip ($file) {
+    Write-Output("Extracting", $file, "to", $pwd)
+    $fullFile = Get-ChildItem -Path $pwd -Filter $file | ForEach-Object { $_.FullName }
+    Expand-Archive -Path $fullFile -DestinationPath $pwd
+}
+
+function pkill($name) {
+    Get-Process $name -ErrorAction SilentlyContinue | Stop-Process
+}
+
+function Expand-Error {
+    param (
+        $ErrorRecord = $Error[0]
+    )
+    
+    $ErrorRecord | Format-List * -Force
+    $ErrorRecord.InvocationInfo | Format-List *
+    $Exception = $ErrorRecord.Exception
+    for ($i = 0; $Exception; $i++, ($Exception = $Exception.InnerException)) {
+        Write-Host "Inner error $i :"
+        $Exception | Format-List * -Force
+        Write-Host ""
+        Write-Host ""
+    }
+}

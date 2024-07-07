@@ -10,7 +10,7 @@ if($IsWindows -or ($NULL -eq $IsWindows)) {
 if (Get-AppPackage -name "Microsoft.DesktopAppInstaller") {
     Write-Host "WinGet present" -ForegroundColor DarkGreen
     Write-Host "Installing PowerShell Core via WinGet" -ForegroundColor DarkYellow 
-    winget install -e --id Microsoft.PowerShell --accept-source-agreements --accept-package-agreements -s
+    winget install -e --id Microsoft.PowerShell --accept-source-agreements --accept-package-agreements --source winget
 } else {
     Write-Host "WinGet missing..."  -ForegroundColor DarkYellow
     Write-Host "Checking for Chocolatey presence..."  -ForegroundColor DarkYellow
