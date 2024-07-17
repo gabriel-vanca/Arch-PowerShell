@@ -54,12 +54,57 @@ function Test-CommandExists {
 }
 
 function admin {
+    if($IsLinux -or $IsMacOS) {
+        throw "This function only supports Windows Terminal"
+    }
     if ($args.Count -gt 0) {
         $argList = "& '$args'"
         Start-Process wt -Verb runAs -ArgumentList "pwsh.exe -NoExit -Command $argList"
     } else {
         Start-Process wt -Verb runAs
     }
+}
+
+function Test-Elevation {
+    # Check Administrator priviledges manually
+    # ($NULL -eq $IsWindows) checks for Windows Sandbox enviroment
+    if($IsWindows -or ($NULL -eq $IsWindows)) {
+        # Get the ID and security principal of the current user account
+        $myWindowsID=[System.Security.Principal.WindowsIdentity]::GetCurrent()
+        $myWindowsPrincipal = New-Object System.Security.Principal.WindowsPrincipal($myWindowsID)
+        # Get the security principal for the Administrator role
+        $adminRole=[System.Security.Principal.WindowsBuiltInRole]::Administrator
+
+        return $myWindowsPrincipal.IsInRole($adminRole)
+    } else {
+        if($IsLinux -or $IsMacOS) {
+            return ((id -u) -eq 0)
+        } else {
+            return $NULL
+        }
+    }
+}
+
+# Open PowerShell command history file
+function Open-HistoryFile {
+    code (Get-PSReadLineOption | Select-Object -ExpandProperty HistorySavePath)
+}
+Set-Alias -Name history -Value Open-HistoryFile -Option AllScope
+
+# Copy the last command entered
+function Copy-LastCommand {
+    Get-History -Id $(((Get-History) | Select-Object -Last 1 |
+          Select-Object ID -ExpandProperty ID)) |
+        Select-Object -ExpandProperty CommandLine |
+          clip
+}
+
+# Compute file hashes - useful for checking successful downloads
+function Get-FileHash256 {
+    $filePath = $args[0]
+    $sha_256_hash = (Get-FileHash -Algorithm SHA256 $filePath).hash
+    Write-Output "Hash for '$filePath' is '$sha_256_hash' (copied to clipboard)."
+    $sha_256_hash | clip
 }
 
 # Get my external IP
@@ -70,10 +115,11 @@ Set-Alias -Name myip -Value Get-ExternalIp -Description "Return external IP"
 function Test-InternetConnection {
     try {
         Test-Connection -ComputerName 1.1.1.1 -Count 1 -ErrorAction Stop
+        Write-Host "✅ Internet Connection available" -ForegroundColor DarkGreen
         return $True
     }
     catch {
-        Write-Warning "Internet connection is not available."
+        Write-Warning "⚠️ Internet connection is not available."
         return $False
     }
 }
@@ -130,14 +176,15 @@ function Expand-Error {
     param (
         $ErrorRecord = $Error[0]
     )
-    
+
+    Write-Host "Top error:" -ForegroundColor DarkRed
     $ErrorRecord | Format-List * -Force
     $ErrorRecord.InvocationInfo | Format-List *
     $Exception = $ErrorRecord.Exception
+    Write-Host "-------------------------------------------------------`n"
     for ($i = 0; $Exception; $i++, ($Exception = $Exception.InnerException)) {
-        Write-Host "Inner error $i :"
+        Write-Host "Inner error $i :" -ForegroundColor DarkRed
         $Exception | Format-List * -Force
-        Write-Host ""
-        Write-Host ""
+        Write-Host "`n"
     }
 }
