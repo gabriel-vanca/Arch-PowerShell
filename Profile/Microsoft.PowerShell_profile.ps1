@@ -4,34 +4,72 @@
 Import-Module -Name Terminal-Icons
 Import-Module -Name posh-git
 Import-Module -Name PSReadLine
+Import-Module -Name CompletionPredictor
 
 # Enable support for the posh-git module for autocompletion
 $env:POSH_GIT_ENABLED = $true
 
-# Shows navigable menu of all options when hitting Tab
-Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
+# Activates CompletionPredictor
+# The CompletionPredictor module adds an IntelliSense experience for
+# anything that can be tab-completed in PowerShell.
+# With PSReadLine set to InlineView, you get the normal tab completion experience.
+# When you switch to ListView, you get the IntelliSense experience.
+Set-PSReadLineOption -PredictionSource HistoryAndPlugin -ShowToolTips
 
-Set-PSReadlineOption -ShowToolTips
+# Shows navigable menu of history options when hitting Tab. F2 by default
+Set-PSReadlineKeyHandler -Chord Tab -Function SwitchPredictionView
+# Shows full menu of all possible options when hitting Shift+Tab. Not navigable.
+Set-PSReadLineKeyHandler -Chord Shift+Tab -Function MenuComplete
+# Search command history for command lines that start with the current contents of the command line
+Set-PSReadLineKeyHandler -Chord PageUp -Function HistorySearchBackward
+Set-PSReadLineKeyHandler -Chord PageDown -Function HistorySearchForward
+
+if($IsWindows -eq $False) {
+    # PowerShell parameter completers for native commands on Linux and macOS.
+    # This module uses completers supplied in traditional Unix shells to complete native utility parameters in PowerShell.
+    # Given the nature of native completion results, you may find this works best with PSReadLine's MenuComplete mode.
+    # https://github.com/PowerShell/UnixCompleters
+    Import-Module PSUnixTabCompletion
+}
 
 # Set Theme
-oh-my-posh init pwsh --config "$HOME\Themes\PowerShell\Arch_Theme.omp.json" | Invoke-Expression
+# oh-my-posh --init --shell pwsh --config "$HOME\Themes\PowerShell\Arch_Theme.omp.json" | Invoke-Expression
+# oh-my-posh --init --shell pwsh --config "$env:POSH_THEMES_PATH/deadlydog.omp.json" | Invoke-Expression
 
-# oh-my-posh init pwsh --config "~/.poshthemes/Arch_Theme.omp.json" | Invoke-Expression
-# oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\Arch_Theme.omp.json" | Invoke-Expression
+oh-my-posh --init --shell pwsh --config "$env:POSH_THEMES_PATH/Arch_Theme.omp.json" | Invoke-Expression
+
 # oh-my-posh init pwsh --config 'https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/jandedobbeleer.omp.json' | Invoke-Expression
 
 # Aliases
 # https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/set-alias
-Set-Alias -Name vscode -Value code
 Set-Alias -Name clearDNS -Value Clear-DnsClientCache
 Set-Alias -Name flushDNS -Value Clear-DnsClientCache
+Set-Alias -Name pshelp -Value Get-PSReadLineKeyHandler
+
+# Test Command Existence
+function Test-CommandExists {
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        $command
+    )
+    $exists = $null -ne (Get-Command $command -ErrorAction SilentlyContinue)
+    return $exists
+}
+
+if (Test-CommandExists code) {
+    Set-Alias -Name vscode -Value code
+    function Edit-Profile { code $PROFILE }
+} else {
+    function Edit-Profile { micro $PROFILE }
+}
+
+function pfhelpfull {Get-PSReadLineKeyHandler -Bound -Unbound}
 
 # Profile management
 function reload { & $PROFILE }
 $ProfileDirectory = $profile | split-path -Parent
-function Edit-Profile {
-    code $PROFILE
-}
 
 # Navigation Shortcuts
 function documents { Set-Location -Path $HOME\Documents }
@@ -45,13 +83,6 @@ function .... { Set-Location ..\..\.. }
 # Enhanced Listing
 function la { Get-ChildItem -Path . -Force | Format-Table -AutoSize }
 function ll { Get-ChildItem -Path . -Force -Hidden | Format-Table -AutoSize }
-
-# Test Command Existence
-function Test-CommandExists {
-    param($command)
-    $exists = $null -ne (Get-Command $command -ErrorAction SilentlyContinue)
-    return $exists
-}
 
 function admin {
     if($IsLinux -or $IsMacOS) {
