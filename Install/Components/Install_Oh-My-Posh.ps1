@@ -25,19 +25,21 @@ pwsh -NoProfile -NonInteractive -Command {
     if (Get-Module oh-my-posh) {
         try {
             Uninstall-Module oh-my-posh -AllVersions -Force
-        } catch {
+        }
+        catch {
             Write-Host "Deprecated Oh-My-Posh not present. Nothing to uninstall."
         }
     }
 }
 
 # ($NULL -eq $IsWindows) checks for Windows Sandbox enviroment
-if($IsWindows -or ($NULL -eq $IsWindows)) {
+if ($IsWindows -or ($NULL -eq $IsWindows)) {
     powershell -NoProfile -NonInteractive -Command {
         if (Get-Module oh-my-posh) {
             try {
                 Uninstall-Module oh-my-posh -AllVersions -Force
-            } catch {
+            }
+            catch {
                 Write-Host "Old Oh-My-Posh not present. Nothing to uninstall."
             }
         }
@@ -48,10 +50,11 @@ if($IsWindows -or ($NULL -eq $IsWindows)) {
 Write-Host "Proceeding with installation"
 
 # ($NULL -eq $IsWindows) checks for Windows Sandbox enviroment
-if($IsWindows -or ($NULL -eq $IsWindows)) {
+if ($IsWindows -or ($NULL -eq $IsWindows)) {
     if (Get-AppPackage -name "Microsoft.DesktopAppInstaller") {
         Write-Host "WinGet present" -ForegroundColor DarkGreen
-    } else {
+    }
+    else {
         Write-Host "WinGet missing..."  -ForegroundColor DarkYellow
         Write-Host "Checking for Chocolatey presence..."  -ForegroundColor DarkYellow
         Start-Sleep 10
@@ -62,15 +65,17 @@ if($IsWindows -or ($NULL -eq $IsWindows)) {
             Write-Host "Chocolatey is present."  -ForegroundColor DarkGreen
             Write-Host "Installing oh-my-posh via Chocolatey" -ForegroundColor DarkYellow
             choco install oh-my-posh -y
-        } else {
+        }
+        else {
             Write-Host "Chocolatey is missing."  -ForegroundColor DarkMagenta
             Write-Host "Installing oh-my-posh manually via script" -ForegroundColor DarkYellow
             Start-Sleep -Seconds 5
             Set-ExecutionPolicy Bypass -Scope Process -Force; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://ohmyposh.dev/install.ps1'))
         }
     }
-} else {
-    if($IsLinux) {
+}
+else {
+    if ($IsLinux) {
         Write-Host "Linux deployment detected."
         Write-Host "Installing via Homebrew" -ForegroundColor DarkYellow
         try {
@@ -82,19 +87,22 @@ if($IsWindows -or ($NULL -eq $IsWindows)) {
             Write-Host "Installing manually" -ForegroundColor DarkYellow
             curl -s https://ohmyposh.dev/install.sh | bash -s
         }
-    } else {
-        if($IsMacOS) {
+    }
+    else {
+        if ($IsMacOS) {
             Write-Host "MacOS deployment detected."
             Write-Host "Installing via Homebrew" -ForegroundColor DarkYellow
             try {
                 brew install jandedobbeleer/oh-my-posh/oh-my-posh
                 brew update && brew upgrade oh-my-posh
-            } catch {
+            }
+            catch {
                 Write-Error "Installing via Homebrew failed"
                 Write-Host "Installing manually" -ForegroundColor DarkYellow
                 curl -s https://ohmyposh.dev/install.sh | bash -s
             }
-        } else {
+        }
+        else {
             Write-Error "Unknown deployment"
             Write-Host "Installing manually" -ForegroundColor DarkYellow
             curl -s https://ohmyposh.dev/install.sh | bash -s
@@ -105,10 +113,10 @@ if($IsWindows -or ($NULL -eq $IsWindows)) {
 Write-Host "Refreshing terminal"
 .$PROFILE
 # ($NULL -eq $IsWindows) checks for Windows Sandbox enviroment
-if($IsWindows -or ($NULL -eq $IsWindows)) {
+if ($IsWindows -or ($NULL -eq $IsWindows)) {
     # Expected path of the choco.exe file.
     $chocoInstallPath = "$Env:ProgramData/chocolatey/choco.exe"
-    if(Test-Path -path $chocoInstallPath) {
+    if (Test-Path -path $chocoInstallPath) {
         # Make `refreshenv` available right away, by defining the $env:ChocolateyInstall
         # variable and importing the Chocolatey profile module.
         $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."   
@@ -119,7 +127,7 @@ if($IsWindows -or ($NULL -eq $IsWindows)) {
 }
 
 Write-Host "Testing installation" -ForegroundColor DarkYellow
-try{
+try {
     oh-my-posh version
     Write-Host "Oh-my-posh installation succesful." -ForegroundColor DarkGreen
 }

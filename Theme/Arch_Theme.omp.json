@@ -199,9 +199,7 @@
           "powerline_symbol": "\ue0b0",
           "template": " \ue23a ",
           "background": "#0095e9",
-          "background_templates": [
-            "{{ if gt .Code 0 }}#e91e63{{ end }}"
-          ],
+          "background_templates": ["{{ if gt .Code 0 }}#e91e63{{ end }}"],
           "foreground": "#ffffff",
           "properties": {
             "always_enabled": true

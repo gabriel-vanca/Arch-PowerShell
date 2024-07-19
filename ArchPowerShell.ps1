@@ -28,23 +28,24 @@ Write-Host "On Windows you need to run this script from a terminal with admin pr
 
 #Check Administrator priviledges manually
 # ($NULL -eq $IsWindows) checks for Windows Sandbox enviroment
-if($IsWindows -or ($NULL -eq $IsWindows)) {
-    $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-    if($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) -eq $true) {
-        Write-Host "This session is running with Administrator priviledges." -ForegroundColor DarkGreen
-    } else {
-        Write-Host "This session is not running with Administrator priviledges." -ForegroundColor DarkRed    
-        $Host.UI.RawUI.WindowTitle = "[Not Admin]: " + $host.UI.RawUI.WindowTitle
-        Write-Host "Please close this prompt and restart as admin" -ForegroundColor DarkRed
-        Start-Sleep -Seconds 10
-        throw "This session is not running with Administrator priviledges."
-    }
+if ($IsWindows -or ($NULL -eq $IsWindows)) {
+	$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+	if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) -eq $true) {
+		Write-Host "This session is running with Administrator priviledges." -ForegroundColor DarkGreen
+	}
+ else {
+		Write-Host "This session is not running with Administrator priviledges." -ForegroundColor DarkRed    
+		$Host.UI.RawUI.WindowTitle = "[Not Admin]: " + $host.UI.RawUI.WindowTitle
+		Write-Host "Please close this prompt and restart as admin" -ForegroundColor DarkRed
+		Start-Sleep -Seconds 10
+		throw "This session is not running with Administrator priviledges."
+	}
 }
 
 Write-Host "Step 1: Install/Update PowerShell Modules"
-if($IsWindows -or ($NULL -eq $IsWindows)) {
+if ($IsWindows -or ($NULL -eq $IsWindows)) {
 	Write-Host "PowerShell Core Modules:"
-    Invoke-RestMethod "https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Components/Install_PS_Modules.ps1" | Invoke-Expression
+	Invoke-RestMethod "https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Components/Install_PS_Modules.ps1" | Invoke-Expression
 	Write-Host "PowerShell Core modules installed:"
 	Get-InstalledModule
 
@@ -54,8 +55,9 @@ if($IsWindows -or ($NULL -eq $IsWindows)) {
 	}
 	Write-Host "PowerShell Desktop modules installed:"
 	Get-InstalledModule
-} else {
-    sudo pwsh -noprofile -command {
+}
+else {
+	sudo pwsh -noprofile -command {
 		Invoke-RestMethod "https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Components/Install_PS_Modules.ps1" | Invoke-Expression
 
 		Write-Host "PowerShell Core modules installed:"

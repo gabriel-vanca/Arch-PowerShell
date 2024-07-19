@@ -1,6 +1,6 @@
 # WARNING: This does not work without admin access. 
-    # The files must be installed manually from File explorer or Powershell if admin access is lacking.
-    # Even so it might not work properly. Fonts should always be installed as admin.
+# The files must be installed manually from File explorer or Powershell if admin access is lacking.
+# Even so it might not work properly. Fonts should always be installed as admin.
 
 #Requires -RunAsAdministrator
 
@@ -34,10 +34,9 @@ Write-Host "Step 3: Additional tech fonts installation"
 
 Write-Host "Downloading \Fonts and preparing them for installation"
 
-$repoDownloadLocalPath  = "$env:Temp\Fonts_to_install"
+$repoDownloadLocalPath = "$env:Temp\Fonts_to_install"
 #Ensure folder is empty
-if(Test-Path -path $repoDownloadLocalPath)
-{ 
+if (Test-Path -path $repoDownloadLocalPath) { 
     Remove-Item $repoDownloadLocalPath -Recurse -Force
 }
 
@@ -63,10 +62,10 @@ Remove-Item $repoDownloadLocalPath -Recurse -Force
 Write-Host "Step 4: Refreshing terminal"
 .$PROFILE
 # ($NULL -eq $IsWindows) checks for Windows Sandbox enviroment
-if($IsWindows -or ($NULL -eq $IsWindows)) {
+if ($IsWindows -or ($NULL -eq $IsWindows)) {
     # Expected path of the choco.exe file.
     $chocoInstallPath = "$Env:ProgramData/chocolatey/choco.exe"
-    if(Test-Path -path $chocoInstallPath) {
+    if (Test-Path -path $chocoInstallPath) {
         # Make `refreshenv` available right away, by defining the $env:ChocolateyInstall
         # variable and importing the Chocolatey profile module.
         $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."   

@@ -11,7 +11,8 @@ try {
     Uninstall-Module -Name Profiler -AllVersions
     Uninstall-Module -Name CompletionPredictor -AllVersions
     Uninstall-Module -Name Microsoft.PowerShell.UnixTabCompletion -AllVersions
-} catch {
+}
+catch {
     <#Uninstall will throw error if not modules installed. No need to handle this exception beyond that.#>
 }
 
@@ -28,11 +29,12 @@ Import-Module -Name PSReadLine
 Import-Module -Name Profiler
 Import-Module -Name CompletionPredictor
     
-if($IsWindows -or ($NULL -eq $IsWindows)) {
+if ($IsWindows -or ($NULL -eq $IsWindows)) {
     #  Disable PSReadline Warning
     # https://stackoverflow.com/questions/66748513/re-enable-import-module-psreadline-warning
     Set-ItemProperty 'registry::HKEY_CURRENT_USER\Control Panel\Accessibility\Blind Access' On 0
-} else {
+}
+else {
     Install-Module Microsoft.PowerShell.UnixTabCompletionb -Repository PSGallery -Scope AllUsers -AcceptLicense -Force
     Import-Module PSUnixTabCompletion
 }    
