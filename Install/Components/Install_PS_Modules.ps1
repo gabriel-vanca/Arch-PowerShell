@@ -5,11 +5,12 @@ Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
 
 Write-Host "Uninstall old versions if present"
 try {
-    Uninstall-Module Terminal-Icons -AllVersions
-    Uninstall-Module posh-git -AllVersions
-    Uninstall-Module PSReadLine -AllVersions
-    Uninstall-Module CompletionPredictor -AllVersions
-    Uninstall-Module Microsoft.PowerShell.UnixTabCompletion -AllVersions
+    Uninstall-Module -Name Terminal-Icons -AllVersions
+    Uninstall-Module -Name posh-git -AllVersions
+    Uninstall-Module -Name PSReadLine -AllVersions
+    Uninstall-Module -Name Profiler -AllVersions
+    Uninstall-Module -Name CompletionPredictor -AllVersions
+    Uninstall-Module -Name Microsoft.PowerShell.UnixTabCompletion -AllVersions
 } catch {
     <#Uninstall will throw error if not modules installed. No need to handle this exception beyond that.#>
 }
@@ -18,11 +19,13 @@ Write-Host "Installing modules:"
 Install-Module -Name posh-git -Scope AllUsers -Force
 Install-Module -Name PSReadLine -Scope AllUsers -Force
 Install-Module -Name Terminal-Icons -Repository PSGallery -Scope AllUsers -Force
+Install-Module -Name Profiler -Repository PSGallery -Scope AllUsers -Force
 Install-Module -Name CompletionPredictor -Repository PSGallery -Scope AllUsers -Force
 
 Import-Module -Name Terminal-Icons
 Import-Module -Name posh-git
 Import-Module -Name PSReadLine
+Import-Module -Name Profiler
 Import-Module -Name CompletionPredictor
     
 if($IsWindows -or ($NULL -eq $IsWindows)) {
