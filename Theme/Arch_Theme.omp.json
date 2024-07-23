@@ -3,6 +3,11 @@
   "version": 2,
   "console_title_template": "{{if .Root}} \u26a1 {{end}}{{.Folder | replace \"~\" \"🏠\"}}@{{.HostName}}.{{.Env.USERDOMAIN}}",
   "final_space": true,
+  // "definitions": {
+  //   "def:mapped_locations": {
+  //     "D:/Git Repositories": "\uF09B"
+  //   }
+  // },
   "blocks": [
     {
       "type": "prompt",
@@ -45,12 +50,17 @@
           "type": "path",
           "style": "powerline",
           "powerline_symbol": "\ue0b0",
-          "template": " \uea83 {{ .Path }} ",
+          "template": " \uea83 {{ .Path }}",
           "properties": {
-            "style": "folder",
+            "style": "agnoster_full",
             "home_icon": "~",
-            "folder_separator_icon": " \ue0b1 "
-          },
+            // "folder_separator_icon": " \ue0b1 ",
+            "mapped_locations": {
+              "D:/OneDrive - ANDROMEDA/ANDROMEDA/Configurations & Deployments": " \uF013 ",
+              "D:/OneDrive - ANDROMEDA/Git Repositories": " \uF09B "
+            }
+            // "$ref": "#/definitions/def:mapped_locations"                    
+          },            
           "background": "#2bc279",
           "foreground": "#262b44"
         },
@@ -97,17 +107,17 @@
           "style": "powerline",
           "template": " \ue626 {{ if .Error }}{{ .Error }}{{ else }}{{ .Full }}{{ end }} "
         },
-        // {
-        //   "type": "julia",
-        //   "background": "#4063D8",
-        //   "foreground": "#111111",
-        //   "powerline_symbol": "\ue0b0",
-        //   "properties": {
-        //     "fetch_version": true
-        //   },
-        //   "style": "powerline",
-        //   "template": " \ue624 {{ if .Error }}{{ .Error }}{{ else }}{{ .Full }}{{ end }} "
-        // },
+        {
+          "type": "julia",
+          "background": "#4063D8",
+          "foreground": "#111111",
+          "powerline_symbol": "\ue0b0",
+          "properties": {
+            "fetch_version": true
+          },
+          "style": "powerline",
+          "template": " \ue624 {{ if .Error }}{{ .Error }}{{ else }}{{ .Full }}{{ end }} "
+        },
         {
           "type": "python",
           "background": "#FFDE57",
@@ -199,7 +209,9 @@
           "powerline_symbol": "\ue0b0",
           "template": " \ue23a ",
           "background": "#0095e9",
-          "background_templates": ["{{ if gt .Code 0 }}#e91e63{{ end }}"],
+          "background_templates": [
+            "{{ if gt .Code 0 }}#e91e63{{ end }}"
+          ],
           "foreground": "#ffffff",
           "properties": {
             "always_enabled": true
