@@ -71,3 +71,6 @@ Invoke-RestMethod "https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShe
 
 Write-Host "Step 3: Deploy Powershell Fonts"
 Invoke-RestMethod "https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Components/Install_Fonts.ps1" | Invoke-Expression
+
+# TODO This takes a lot of space. Make sure it only works for Workstation Windows PCs.
+Update-Help -Force -ErrorAction SilentlyContinue

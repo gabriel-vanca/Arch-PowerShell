@@ -11,6 +11,7 @@ try {
     Uninstall-Module -Name Profiler -AllVersions
     Uninstall-Module -Name CompletionPredictor -AllVersions
     Uninstall-Module -Name Microsoft.PowerShell.UnixTabCompletion -AllVersions
+    Uninstall-Module -Name Microsoft.PowerShell.ConsoleGuiTools -AllVersions
 }
 catch {
     <#Uninstall will throw error if not modules installed. No need to handle this exception beyond that.#>
@@ -22,12 +23,7 @@ Install-Module -Name PSReadLine -Scope AllUsers -Force
 Install-Module -Name Terminal-Icons -Repository PSGallery -Scope AllUsers -Force
 Install-Module -Name Profiler -Repository PSGallery -Scope AllUsers -Force
 Install-Module -Name CompletionPredictor -Repository PSGallery -Scope AllUsers -Force
-
-Import-Module -Name Terminal-Icons
-Import-Module -Name posh-git
-Import-Module -Name PSReadLine
-Import-Module -Name Profiler
-Import-Module -Name CompletionPredictor
+Install-Module -Name Microsoft.PowerShell.ConsoleGuiTools -Repository PSGallery -Scope AllUsers -Force
     
 if ($IsWindows -or ($NULL -eq $IsWindows)) {
     #  Disable PSReadline Warning
@@ -35,8 +31,7 @@ if ($IsWindows -or ($NULL -eq $IsWindows)) {
     Set-ItemProperty 'registry::HKEY_CURRENT_USER\Control Panel\Accessibility\Blind Access' On 0
 }
 else {
-    Install-Module Microsoft.PowerShell.UnixTabCompletionb -Repository PSGallery -Scope AllUsers -AcceptLicense -Force
-    Import-Module PSUnixTabCompletion
+    Install-Module Microsoft.PowerShell.UnixTabCompletion -Repository PSGallery -Scope AllUsers -AcceptLicense -Force
 }    
 
 Write-Host "Module installation completed." -ForegroundColor DarkGreen
