@@ -3,11 +3,6 @@
   "version": 2,
   "console_title_template": "{{if .Root}} \u26a1 {{end}}{{.Folder | replace \"~\" \"🏠\"}}@{{.HostName}}.{{.Env.USERDOMAIN}}",
   "final_space": true,
-  // "definitions": {
-  //   "def:mapped_locations": {
-  //     "D:/Git Repositories": "\uF09B"
-  //   }
-  // },
   "blocks": [
     {
       "type": "prompt",
@@ -38,31 +33,13 @@
           },
           "template": " {{ if .WSL }}\ue712 on {{ end }}{{ .Icon }} "
         },
-        // {
-        //   "type": "session",
-        //   "style": "powerline",
-        //   "powerline_symbol": "\ue0b0",
-        //   "template": " {{ .UserName }}@{{ .HostName }} ",
-        //   "background": "#FFC600",
-        //   "foreground": "#000000"
-        // },
         {
-          "type": "path",
+          "type": "session",
           "style": "powerline",
           "powerline_symbol": "\ue0b0",
-          "template": " \uea83 {{ .Path }}",
-          "properties": {
-            "style": "agnoster_full",
-            "home_icon": "~",
-            // "folder_separator_icon": " \ue0b1 ",
-            "mapped_locations": {
-              "D:/OneDrive - ANDROMEDA/ANDROMEDA/Configurations & Deployments": " \uF013 ",
-              "D:/OneDrive - ANDROMEDA/Git Repositories": " \uF09B "
-            }
-            // "$ref": "#/definitions/def:mapped_locations"                    
-          },            
-          "background": "#2bc279",
-          "foreground": "#262b44"
+          "template": " {{ .UserName }}@{{ .HostName }} ",
+          "background": "#FFC600",
+          "foreground": "#000000"
         },
         {
           "type": "git",
@@ -204,13 +181,13 @@
           "template": " \udb86\udd9f {{ .FormattedMs }} "
         },
         {
-          "type": "exit",
+          "type": "status",
           "style": "powerline",
           "powerline_symbol": "\ue0b0",
-          "template": " \ue23a ",
-          "background": "#0095e9",
+          "template": " {{ if gt .Code 0 }}\ue23a \uf421{{ else }}\u2665 \uf469{{ end }} ",
+          "background": "#4caf50", // #0095e9
           "background_templates": [
-            "{{ if gt .Code 0 }}#e91e63{{ end }}"
+            "{{ if gt .Code 0 }}#e91e63{{ end }}" //red
           ],
           "foreground": "#ffffff",
           "properties": {
@@ -220,7 +197,8 @@
       ]
     },
     {
-      "type": "rprompt",
+      "type": "prompt",
+      "alignment": "right",
       "segments": [
         {
           "type": "battery",
@@ -242,13 +220,57 @@
           "template": " {{ if not .Error }}{{ .Icon }}{{ .Percentage }}{{ end }}{{ .Error }}\uf295 "
         },
         {
+          "type": "sysinfo",
+          "style": "powerline",
+          "invert_powerline": true,
+          "powerline_symbol": "\ue0b2",
+          "background": "#516BEB", //alt: #6f54a1
+          "foreground": "#ffffff", // alt: #ffd640
+          "template": "<#ffffff>\ue266</> {{ round .PhysicalPercentUsed .Precision }}% [{{ (div ((sub .PhysicalTotalMemory .PhysicalFreeMemory)|float64) 1073741824.0) }}/{{ (div .PhysicalTotalMemory 1073741824.0) }}GB] "
+        }
+      ]
+    },
+    {
+      "type": "prompt",
+      "alignment": "left",
+      "newline": true,
+      "segments": [
+        {
+          "type": "path",
+          "style": "powerline",
+          "powerline_symbol": "\ue0b0",
+          "template": " \uea83 {{ .Path }}",
+          "properties": {
+            "style": "agnoster_full",
+            "home_icon": "~",
+            // "folder_separator_icon": " \ue0b1 ",
+            "mapped_locations": {
+              "D:/OneDrive - ANDROMEDA/ANDROMEDA/Configurations & Deployments": " \uF013 ",
+              "D:/OneDrive - ANDROMEDA/Git Repositories": " \uF09B "
+            }
+          },            
+          "background": "#2bc279",
+          "foreground": "#262b44"
+        }
+      ]
+    },
+    {
+      "type": "prompt",
+      "alignment": "right",
+      "segments": [
+        {
           "type": "time",
           "style": "powerline",
           "invert_powerline": true,
           "powerline_symbol": "\ue0b2",
-          "background": "#2e9599",
-          "foreground": "#111111",
-          "template": "\ue389 {{ .CurrentDate | date .Format }} "
+          "properties": {
+            "time_format": "15:04:05 | \uf073 Mon 02-Jan"  // https://gobyexample.com/time-formatting-parsing
+          },
+          "template": "\ue389 {{ .CurrentDate | date .Format }} ",
+          // "background": "#2e9599", //alt: #00897b
+          // "foreground": "#111111"
+          "background": "#6f54a1",
+          "foreground": "#ffd640"
         }
       ]
     },
