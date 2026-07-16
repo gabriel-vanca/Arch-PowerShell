@@ -27,20 +27,20 @@ Notes:
 
 ### Ubuntu
 
-Open a terminal and run the following with root privileges:
+Open a terminal and run the following. Do not use sudo: the script prompts for your password when it needs it.
 
 ```bash
-sudo wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Core/Ubuntu_Install_Core.sh | bash
+wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Core/Ubuntu_Install_Core.sh | bash
 ```
 
 Note: Version 18.04 or above is required.
 
 ### MacOS
 
-Open a terminal and run the following with administrator privileges:
+Open a terminal and run the following. Do not use sudo: the script prompts for your password when it needs it.
 
 ```bash
-sudo wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Core/MacOS_Install_Core.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Core/MacOS_Install_Core.sh | bash
 ```
 
 Note:
