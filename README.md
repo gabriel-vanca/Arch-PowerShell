@@ -12,14 +12,18 @@ Open a classic PowerShell terminal with administrator privileges and run the fol
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned
-wget -O - https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Core/Windows_Install_Core.ps1 | powershell
+irm https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Core/Windows_Install_Core.ps1 | iex
 ```
 
 Notes:
-* This will attempt to use WinGet, which comes included in Windows 11, Windows Server 2025 and latest builds of Windows 10, in order to install/update PowerShell Core.
-* If WinGet is not present (for example you're running a pre-2025 Windows Server Deployment or an older Windows workstation version), the script will try to use Chocolatey instead to install PowerShell Core.
-* If you'd prefer to use WinGet, you can use this other script to install it: https://github.com/gabriel-vanca/WinGet
-* For workstations, Windows 10 1809+ or Windows 11 is required. For Servers, Windows Server 2012 R2 or later is required.
+* For workstations, Windows 11 or higher is required. For servers, Windows Server 2022 or later is required.
+* Windows PowerShell 5.1 is required for installing PowerShell 7, but not for updating an existing PowerShell 7 installation.
+* Administrator privileges are required, as PowerShell 7 is installed and updated machine-wide via the MSI package.
+* MSIX installs are not supported. This might mean this script will not install/update PowerShell 7.7 or higher, as the superior MSI support is scheduled to be deprecated in exchange for the much-less-capable MSIX install (pending an almost inevitable U-turn from Microsoft).
+* The script looks through all the PowerShell 7 packages on WinGet and installs whatever is the latest one that supports MSI installs (currently 7.6.x).
+* This will attempt to use WinGet, which comes included in Windows 11 and Windows Server 2025, in order to install/update PowerShell Core.
+* If WinGet is not present (for example on Windows Server 2022), the script will try to use Chocolatey instead to install PowerShell Core.
+* If you'd prefer to use WinGet but do not have it installed, you can use my other script to install it: https://github.com/gabriel-vanca/WinGet
 
 ### Ubuntu
 
@@ -46,7 +50,7 @@ Note:
 
 ## 2. Install Additional PowerShell Components
 
-Open an elevated PowerShell terminal and run the following commands in order to install the necessary PowerShell modules, Oh-my-Posh and the necessary fonts.
+Open an elevated PowerShell 7 (`pwsh`) terminal and run the following commands in order to install the necessary PowerShell modules, Oh-my-Posh and the necessary fonts. Note that step 1 leaves you in classic Windows PowerShell: start a new `pwsh` window for this step, as these scripts require PowerShell 7.
 
 ```powershell
 Invoke-RestMethod https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/PowerShell/Install/Additional_Components/Install_Additional_Components.ps1 | Invoke-Expression

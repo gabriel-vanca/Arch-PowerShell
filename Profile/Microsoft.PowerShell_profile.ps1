@@ -1,5 +1,5 @@
-# Switching to TLS1.2 in this session (https://docs.microsoft.com/en-us/powershell/scripting/gallery/installing-psget?view=powershell-7.2)
-[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+# Enabling TLS 1.3 in this session.
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls13
 
 Import-Module -Name Terminal-Icons
 Import-Module -Name posh-git
@@ -271,13 +271,38 @@ function newdir {
     }
 }
 
+function New-TemporaryDirectory {
+    [Cmdletbinding()]
+    [Alias('newtempdir')]
+    param()
+    # GetTempPath works on all platforms; $env:TEMP exists only on Windows.
+    $tempBasePath = [System.IO.Path]::GetTempPath()
+    # Bounded retry against name collisions; a persistent failure (e.g. unwritable temp) throws.
+    foreach ($attempt in 1..3) {
+        $tempDirPath = Join-Path $tempBasePath ([System.IO.Path]::GetRandomFileName() + ".tmp")
+        if (Test-Path $tempDirPath) {
+            continue
+        }
+        try {
+            return New-Item -ItemType Directory -Path $tempDirPath -ErrorAction Stop
+        }
+        catch {
+            if ($attempt -eq 3) {
+                throw
+            }
+        }
+    }
+    throw "Failed to create a temporary directory under $tempBasePath after 3 attempts."
+}
+
+
 # Find files recursively
 function findfile($search) {
     Get-ChildItem -Recurse -ErrorAction SilentlyContinue *.* | Where-Object { $_.name -like "*$search*" }
 }
 
 #Find files recursively, including hidden
-function findhfile($search) {
+function findfileh($search) {
     Get-ChildItem -Recurse -Force -ErrorAction SilentlyContinue *.* | Where-Object { $_.name -like "*$search*" }
 }
 
@@ -580,7 +605,6 @@ function Format-MacAddress {
     
     #>
     
-    #region Parameter
     [OutputType('String')]
     [CmdletBinding()]
     param
@@ -589,70 +613,88 @@ function Format-MacAddress {
         [Alias('Address')]
         [String[]] $MacAddress,
     
-        [ValidateSet(':', 'None', '.', '-', ' ', 'Space', ';')]
-        [Alias('Delimiter')]
+        [Parameter(Position = 1)]
+        [ValidateSet(':', '.', '-', ' ', ';', 'None', 'Space', 'Hyphen','Colon','Plain')]
+        [Alias('Delimiter','Format')]
         [string] $Separator = ':',
     
-        [ValidateSet('Ignore', 'Upper', 'Uppercase', 'Lower', 'Lowercase')]
-        [string] $Case = 'Upper',
+        [Parameter(Position = 2)]
+        [ValidateSet('Ignore', 'Upper', 'Uppercase', 'Lower', 'Lowercase', 'UPPER', 'LOWERCASE', 'IGNORE', 'ignore', 'upper', 'lower')]
+        [string] $Case = 'UPPERCASE',
     
+        [Parameter(Position = 3)]
         [ValidateSet(2, 3, 4, 6)]
         [int] $Split = 2,
     
+        [Parameter(Position = 4)]
         [switch] $IncludeOriginal
     )
     
     begin {
-        if ($Separator -eq 'Space') { $Separator = ' ' }
+        # Normalized into new local variables: assigning back into $Separator/$Case would re-run
+        # their ValidateSet attributes, which reject the mapped values. Switch matching is
+        # case-insensitive, so the case variants in the ValidateSet all land here correctly.
+        $separatorCharacter = switch ($Separator) {
+            'Hyphen' { '-' }
+            'Colon' { ':' }
+            'Space' { ' ' }
+            'Plain' { '' }
+            'None' { '' }
+            default { $Separator }
+        }
+
+        $caseMode = switch ($Case) {
+            'Upper' { 'Uppercase' }
+            'Lower' { 'Lowercase' }
+            default { $Case }
+        }
         Write-Verbose -Message "Starting [$($MyInvocation.Mycommand)]"
     }
     
     process {
         foreach ($Mac in $MacAddress) {
             $oldMac = $Mac
+            $Mac = $Mac.trim() #Remove space at the beginning
+            $Mac = $Mac.trimend() #Remove space at the end
             $Mac = $Mac -replace '-', '' #Replace Dash
             $Mac = $Mac -replace ':', '' #Replace Colon
             $Mac = $Mac -replace ';', '' #Replace semicolon
-            $Mac = $Mac -replace '/s', '' #Remove whitespace
+            $Mac = $Mac -replace '\s', '' #Remove whitespace
             $Mac = $Mac -replace ' ', '' #Remove whitespace
             $Mac = $Mac -replace '\.', '' #Remove dots
-            $Mac = $Mac.trim() #Remove space at the beginning
-            $Mac = $Mac.trimend() #Remove space at the end
-            switch ($Case) {
-                'Upper' { $Mac = $mac.toupper() }
-                'Uppercase' { $Mac = $mac.toupper() }
-                'Lower' { $Mac = $mac.tolower() }
-                'Lowercase' { $Mac = $mac.tolower() }
-                'Ignore' { }
-                Default { }
+
+            $Mac = switch ($caseMode) {
+                'Uppercase' { $Mac.toupper() }
+                'Lowercase' { $Mac.tolower() }
+                'Ignore' { $Mac }
+                Default { $Mac.toupper() }
             }
-    
-            if ($Separator -ne 'None') {
-                switch ($Split) {
-                    2 { $Mac = $Mac -replace '(..(?!$))', "`$1$Separator" }
-                    3 { $Mac = $Mac -replace '(...(?!$))', "`$1$Separator" }
-                    4 { $Mac = $Mac -replace '(....(?!$))', "`$1$Separator" }
-                    6 { $Mac = $Mac -replace '(......(?!$))', "`$1$Separator" }
-                    default { $Mac = $Mac -replace '(..(?!$))', "`$1$Separator" }
+
+            if ($separatorCharacter) {
+                $Mac = switch ($Split) {
+                    2 { $Mac -replace '(..(?!$))', "`$1$separatorCharacter" }
+                    3 { $Mac -replace '(...(?!$))', "`$1$separatorCharacter" }
+                    4 { $Mac -replace '(....(?!$))', "`$1$separatorCharacter" }
+                    6 { $Mac -replace '(......(?!$))', "`$1$separatorCharacter" }
+                    default { $Mac -replace '(..(?!$))', "`$1$separatorCharacter" }
                 }
             }
     
-            if ( -not ($IncludeOriginal) ) {
-                write-output -InputObject $Mac
-            }
-            else {
+            if ($IncludeOriginal) {
                 $prop = ([ordered] @{ OriginalMac = $oldMac ; FormattedMac = $mac })
                 $obj = new-object -TypeName psobject -Property $prop
                 write-output -InputObject $obj
             }
+            else {
+                write-output -InputObject $Mac
+            }
         }
-    } #EndBlock Process
+    }
     
     end {
         Write-Verbose -Message "Ending [$($MyInvocation.Mycommand)]"
     }
-    
-} #EndFunction Format-MacAddress
+}
 
 function Format-RandomCase {
     <#
@@ -890,8 +932,6 @@ if ($IsWindows -or ($NULL -eq $IsWindows)) {
     
         Write-Output -InputObject $Members
     }
-
-    
 
     Function Test-RegistryKeyProperty {
         <#
