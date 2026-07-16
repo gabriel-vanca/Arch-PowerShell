@@ -11,11 +11,10 @@
 	Author: Gabriel Vanca
 #>
 
-
 #Requires -PSEdition Core
 
-# Force use of TLS 1.2 for all downloads.
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+# Force use of TLS 1.3 for all downloads.
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls13
 
 # TODO [String]$VersionToLookFor = "14.0.30704.0"
 # TODO [Switch]$ChocolateyInstalled = $False
@@ -24,21 +23,21 @@
 Write-Host "List current Powershell Core version" -ForegroundColor DarkGreen
 $PSVersionTable
 
-Write-Host "On Windows you need to run this script from a terminal with admin priviledges. `nOn Linux, make sure the command is **not** run from the root user as in that case the theme will only be available for the root user." -ForegroundColor DarkYellow
+Write-Host "On Windows you need to run this script from a terminal with admin privileges. `nOn Linux, make sure the command is **not** run from the root user as in that case the theme will only be available for the root user." -ForegroundColor DarkYellow
 
-#Check Administrator priviledges manually
+#Check Administrator privileges manually
 # ($NULL -eq $IsWindows) checks for Windows Sandbox enviroment
 if ($IsWindows -or ($NULL -eq $IsWindows)) {
 	$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 	if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) -eq $true) {
-		Write-Host "This session is running with Administrator priviledges." -ForegroundColor DarkGreen
+		Write-Host "This session is running with Administrator privileges." -ForegroundColor DarkGreen
 	}
  else {
-		Write-Host "This session is not running with Administrator priviledges." -ForegroundColor DarkRed    
+		Write-Host "This session is not running with Administrator privileges." -ForegroundColor DarkRed
 		$Host.UI.RawUI.WindowTitle = "[Not Admin]: " + $host.UI.RawUI.WindowTitle
 		Write-Host "Please close this prompt and restart as admin" -ForegroundColor DarkRed
 		Start-Sleep -Seconds 10
-		throw "This session is not running with Administrator priviledges."
+		throw "This session is not running with Administrator privileges."
 	}
 }
 
@@ -66,7 +65,7 @@ else {
 }
 
 Write-Host "Step 2: Install/Update Oh-my-Posh"
-Invoke-RestMethod "https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Components/Install_Oh-my-Posh.ps1" | Invoke-Expression
+Invoke-RestMethod "https://raw.githubusercontent.com/gabriel-vanca/Arch-PowerShell/main/Install/Components/Install_Oh-My-Posh.ps1" | Invoke-Expression
 
 
 Write-Host "Step 3: Deploy Powershell Fonts"
