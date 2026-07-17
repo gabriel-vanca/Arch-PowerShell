@@ -31,18 +31,38 @@ function Install-PowerShellCore {
     # ---- Internal helpers, in the order the main flow uses them -----------
 
     # Version numbers are matched by shape, not by field label, so this works on localized winget.
+    # Stderr is deliberately not redirected: under Windows PowerShell 5.1 a redirect wraps native
+    # stderr lines in ErrorRecords (which have no Trim method and, with an inherited
+    # $ErrorActionPreference = 'Stop', throw NativeCommandError). The version list is sorted
+    # explicitly because winget's output order is undocumented CLI behavior.
     function Get-AvailablePowerShellVersions {
-        (& winget show --exact --id Microsoft.PowerShell --source winget --versions --disable-interactivity 2>&1) |
+        $versionLines = & winget show --exact --id Microsoft.PowerShell --source winget --versions --accept-source-agreements --disable-interactivity
+        if ($LASTEXITCODE -ne 0) {
+            throw "WinGet failed to list the available PowerShell Core versions (exit code 0x$('{0:X}' -f $LASTEXITCODE))."
+        }
+        $versionLines |
             ForEach-Object { $_.Trim() } |
-            Where-Object { $_ -match '^\d+\.\d+\.\d+(\.\d+)?$' }
+            Where-Object { $_ -match '^\d+\.\d+\.\d+(\.\d+)?$' } |
+            Sort-Object { [version]$_ } -Descending
     }
 
-    # Appx is a Windows PowerShell module. PowerShell 7 reaches it through the compatibility layer.
+    # Appx is a Windows PowerShell module. PowerShell 7 reaches it through the compatibility layer;
+    # -UseWindowsPowerShell only exists there, so 5.1 gets a plain import.
     function Import-AppxModule {
         if (Get-Command Get-AppxPackage -ErrorAction SilentlyContinue) {
             return
         }
-        Import-Module Appx -UseWindowsPowerShell -WarningAction SilentlyContinue -ErrorAction Stop
+        try {
+            if ($PSVersionTable.PSVersion.Major -ge 7) {
+                Import-Module Appx -UseWindowsPowerShell -WarningAction SilentlyContinue -ErrorAction Stop
+            }
+            else {
+                Import-Module Appx -WarningAction SilentlyContinue -ErrorAction Stop
+            }
+        }
+        catch {
+            throw "The Appx module could not be loaded, so existing MSIX installs of PowerShell Core cannot be detected: $($_.Exception.Message)"
+        }
     }
 
     # A per-user MSIX install is removed so the machine does not carry two parallel PowerShell Core
@@ -52,11 +72,11 @@ function Install-PowerShellCore {
     function Remove-PowerShellMsixPackage {
         param([string]$NewestAvailableVersion)
 
-        Write-Host "Checking for a per-user MSIX install of PowerShell Core..."  -ForegroundColor DarkYellow
+        Write-Host "Checking for a per-user MSIX install of PowerShell Core..." -ForegroundColor Yellow
         Import-AppxModule
         $msixPackages = @(Get-AppxPackage -Name 'Microsoft.PowerShell' -AllUsers -ErrorAction SilentlyContinue)
         if ($msixPackages.Count -eq 0) {
-            Write-Host "No MSIX install of PowerShell Core found."  -ForegroundColor DarkGreen
+            Write-Host "No MSIX install of PowerShell Core found." -ForegroundColor Green
             return
         }
 
@@ -65,19 +85,20 @@ function Install-PowerShellCore {
             throw "This session is running from the MSIX package that must be removed. Re-run this script from Windows PowerShell (powershell.exe) instead."
         }
 
-        Write-Host "An MSIX install of PowerShell Core was detected:"  -ForegroundColor DarkYellow
+        Write-Host "An MSIX install of PowerShell Core was detected:" -ForegroundColor DarkYellow
         foreach ($msixPackage in $msixPackages) {
-            Write-Host "  $($msixPackage.PackageFullName)"  -ForegroundColor DarkYellow
+            Write-Host "  $($msixPackage.PackageFullName)" -ForegroundColor DarkYellow
         }
-        Write-Host "Removing it avoids two parallel PowerShell Core installs. New sessions would resolve the machine-wide MSI first either way."  -ForegroundColor DarkYellow
-        Write-Host "This removes the MSIX package for all users on this machine."  -ForegroundColor DarkRed
+        Write-Host "Removing it avoids two parallel PowerShell Core installs. New sessions would resolve the machine-wide MSI first either way." -ForegroundColor Yellow
+        Write-Host "This removes the MSIX package for all users on this machine." -ForegroundColor Red
 
-        $msixVersion = $msixPackages[0].Version
-        if ($NewestAvailableVersion -and $msixVersion -and ([version]$msixVersion -gt [version]$NewestAvailableVersion)) {
-            Write-Host "WARNING: the installed MSIX ($msixVersion) is newer than the newest release available via WinGet ($NewestAvailableVersion). Continuing is a downgrade."  -ForegroundColor DarkRed
+        # Multiple packages are possible (e.g. per-architecture); the newest one drives the warning.
+        $newestMsixVersion = $msixPackages.Version | Sort-Object { [version]$_ } -Descending | Select-Object -First 1
+        if ($NewestAvailableVersion -and $newestMsixVersion -and ([version]$newestMsixVersion -gt [version]$NewestAvailableVersion)) {
+            Write-Host "WARNING: the installed MSIX ($newestMsixVersion) is newer than the newest release available via WinGet ($NewestAvailableVersion). Continuing is a downgrade." -ForegroundColor Red
         }
-        elseif ($msixVersion) {
-            Write-Host "The MSI install targets the newest release that still ships an MSI package, which may be older than the current MSIX version ($msixVersion)."  -ForegroundColor DarkYellow
+        elseif ($newestMsixVersion) {
+            Write-Host "The MSI install targets the newest release that still ships an MSI package, which may be older than the current MSIX version ($newestMsixVersion)." -ForegroundColor DarkYellow
         }
 
         $removalConfirmed = $false
@@ -95,7 +116,7 @@ function Install-PowerShellCore {
             }
         }
         if (-not $canPrompt) {
-            Write-Host "Non-interactive session: removing the MSIX install without confirmation."  -ForegroundColor DarkYellow
+            Write-Host "Non-interactive session: removing the MSIX install without confirmation." -ForegroundColor DarkYellow
             $removalConfirmed = $true
         }
         if (-not $removalConfirmed) {
@@ -103,24 +124,39 @@ function Install-PowerShellCore {
         }
 
         foreach ($msixPackage in $msixPackages) {
-            Write-Host "Removing $($msixPackage.PackageFullName)..."  -ForegroundColor DarkYellow
-            Remove-AppxPackage -Package $msixPackage.PackageFullName -AllUsers -ErrorAction Stop
+            Write-Host "Removing $($msixPackage.PackageFullName)..." -ForegroundColor Yellow
+            try {
+                Remove-AppxPackage -Package $msixPackage.PackageFullName -AllUsers -ErrorAction Stop
+            }
+            catch {
+                throw "Failed to remove MSIX package $($msixPackage.PackageFullName): $($_.Exception.Message)"
+            }
         }
-        Write-Host "MSIX install of PowerShell Core removed."  -ForegroundColor DarkGreen
+        Write-Host "MSIX install of PowerShell Core removed." -ForegroundColor Green
     }
 
+    # Dead app execution alias stubs left behind by a removed MSIX package are zero-byte files
+    # reporting version 0.0.0.0; -All looks past them when a real pwsh sits further down the PATH.
+    function Get-InstalledPwshCommand {
+        Get-Command pwsh -All -ErrorAction SilentlyContinue |
+            Where-Object { $_.Version -and $_.Version -ne [version]'0.0.0.0' } |
+            Select-Object -First 1
+    }
+
+    # Throws on failure. Returns $true when the install succeeded but a system restart is still
+    # pending, $false on plain success.
     function Assert-WingetSucceeded {
         param([int]$ExitCode)
 
         # 0x8A150109 = install succeeded, restart required to finish; 0x8A15010B = restart initiated.
         if (@(0x8A150109, 0x8A15010B) -contains $ExitCode) {
-            Write-Host "PowerShell Core installed. A system restart is required to finish the installation."  -ForegroundColor DarkYellow
-            return
+            Write-Host "PowerShell Core installed. A system restart is required to finish the installation." -ForegroundColor DarkYellow
+            return $true
         }
         # 0x8A150061 / 0x8A15010D = package already installed, 0x8A15002B = no applicable update.
         # All mean PowerShell Core is already present and current, which is a success here.
         if (@(0, 0x8A150061, 0x8A15002B, 0x8A15010D) -contains $ExitCode) {
-            return
+            return $false
         }
         throw "WinGet failed to install PowerShell Core (exit code 0x$('{0:X}' -f $ExitCode))."
     }
@@ -128,7 +164,7 @@ function Install-PowerShellCore {
     # WinGet has defaulted to the per-user MSIX for PowerShell since 7.6.0, so the MSI is forced here.
     # When the newest release no longer ships an MSI (7.7.0 dropped it), earlier releases are tried
     # newest-first, never below 7.6.0. Routing is done purely on exit codes: winget's stdout is
-    # localized and must not be parsed.
+    # localized and must not be parsed. Returns $true when a system restart is still pending.
     function Install-PowerShellMsiViaWinget {
         param([string[]]$AvailableVersions)
 
@@ -142,25 +178,33 @@ function Install-PowerShellCore {
         # 0x8A150049 = no applicable installer: the release exists but ships no MSI for this request.
         $noApplicableInstaller = 0x8A150049
 
-        Write-Host "Installing PowerShell Core via WinGet" -ForegroundColor DarkYellow
-        & winget @baseArguments
+        Write-Host "Installing PowerShell Core via WinGet" -ForegroundColor Yellow
+        Write-Host "The download URL WinGet prints points to github.com/PowerShell/PowerShell, PowerShell's official release channel. WinGet verifies the installer hash before installing." -ForegroundColor Yellow
+        Write-Host "`n---- WinGet output begins ----" -ForegroundColor Magenta
+        Write-Host ""
+        # Out-Host keeps winget's progress on screen without polluting the function's return value.
+        & winget @baseArguments | Out-Host
+        Write-Host "`n---- WinGet output ends ----" -ForegroundColor Magenta
+        Write-Host ""
         if ($LASTEXITCODE -ne $noApplicableInstaller) {
-            Assert-WingetSucceeded -ExitCode $LASTEXITCODE
-            return
+            return (Assert-WingetSucceeded -ExitCode $LASTEXITCODE)
         }
 
-        Write-Host "The latest PowerShell Core release no longer ships an MSI package."  -ForegroundColor DarkYellow
-        Write-Host "Trying earlier releases, newest first, not going below 7.6.0..."  -ForegroundColor DarkYellow
+        Write-Host "The latest PowerShell Core release no longer ships an MSI package." -ForegroundColor DarkYellow
+        Write-Host "Trying earlier releases, newest first, not going below 7.6.0..." -ForegroundColor Yellow
         # The first listed version is the latest, which the attempt above already covered.
         foreach ($version in ($AvailableVersions | Select-Object -Skip 1)) {
             if ([version]$version -lt [version]'7.6.0') {
                 break
             }
-            Write-Host "Trying PowerShell Core $version..."  -ForegroundColor DarkYellow
-            & winget @baseArguments --version $version
+            Write-Host "Trying PowerShell Core $version..." -ForegroundColor Yellow
+            Write-Host "`n---- WinGet output begins ----" -ForegroundColor Magenta
+            Write-Host ""
+            & winget @baseArguments --version $version | Out-Host
+            Write-Host "`n---- WinGet output ends ----" -ForegroundColor Magenta
+            Write-Host ""
             if ($LASTEXITCODE -ne $noApplicableInstaller) {
-                Assert-WingetSucceeded -ExitCode $LASTEXITCODE
-                return
+                return (Assert-WingetSucceeded -ExitCode $LASTEXITCODE)
             }
         }
         throw "No PowerShell Core release at or above 7.6.0 provides an MSI package via WinGet. PowerShell Core installation cannot continue."
@@ -168,121 +212,148 @@ function Install-PowerShellCore {
 
     # ---- Main flow --------------------------------------------------------
 
-    # $IsWindows does not exist in Windows PowerShell 5.1, so it is $NULL there.
-    if ($IsWindows -or ($NULL -eq $IsWindows)) {
-        Write-Host "Installing PowerShell Core"
+    # $IsWindows does not exist in Windows PowerShell 5.1 (which is Windows-only), so it is only
+    # consulted on Core, where it always exists. This also keeps an inherited Set-StrictMode from
+    # tripping over the undefined variable on 5.1.
+    if ($PSVersionTable.PSEdition -eq 'Core' -and -not $IsWindows) {
+        throw "This script installs PowerShell Core on Windows only."
     }
-    else {
-        throw "Not Windows"
-    }
+    Write-Host "Installing PowerShell Core"
+    Write-Host "Output guide: colored lines come from this script; lines between '---- output begins/ends ----' markers come from WinGet or Chocolatey." -ForegroundColor Yellow
 
-    Write-Host "Checking for administrator privileges..."  -ForegroundColor DarkYellow
+    Write-Host "Checking for administrator privileges..." -ForegroundColor Yellow
     $isAdministrator = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator)
     if (-not $isAdministrator) {
-        Write-Host "Not running with administrator privileges."  -ForegroundColor DarkRed
+        Write-Host "Not running with administrator privileges." -ForegroundColor Red
         throw "PowerShell Core is installed machine-wide and requires elevation. Restart PowerShell as Administrator and run this script again."
     }
-    Write-Host "Running with administrator privileges." -ForegroundColor DarkGreen
+    Write-Host "Running with administrator privileges." -ForegroundColor Green
 
     # The package-manager check runs before the MSIX removal below, so removal can never leave the
     # machine without a way to install the replacement MSI.
-    Write-Host "Checking for WinGet presence..."  -ForegroundColor DarkYellow
+    Write-Host "Checking for WinGet presence..." -ForegroundColor Yellow
     $wingetCommand = Get-Command winget -ErrorAction SilentlyContinue
-    # Expected path of the choco.exe file.
-    $chocoInstallPath = Join-Path $Env:ProgramData 'chocolatey\choco.exe'
+    $chocoExePath = Join-Path $Env:ProgramData 'chocolatey\choco.exe'
     if ($wingetCommand) {
-        Write-Host "WinGet present" -ForegroundColor DarkGreen
+        Write-Host "WinGet present" -ForegroundColor Green
     }
     else {
-        Write-Host "WinGet missing..."  -ForegroundColor DarkYellow
-        Write-Host "Checking for Chocolatey presence..."  -ForegroundColor DarkYellow
+        Write-Host "WinGet missing..." -ForegroundColor DarkYellow
+        Write-Host "Checking for Chocolatey presence..." -ForegroundColor Yellow
+        # Deliberate pause, not dead latency: gives the user a window to abort (Ctrl+C) before the
+        # flow continues towards a Chocolatey-based install.
         Start-Sleep 10
-        if (Test-Path $chocoInstallPath) {
-            Write-Host "Chocolatey is present."  -ForegroundColor DarkGreen
+        if (Test-Path $chocoExePath) {
+            Write-Host "Chocolatey is present." -ForegroundColor Green
         }
         else {
-            Write-Host "Chocolatey is missing."  -ForegroundColor DarkMagenta
+            # Red, not DarkMagenta: the legacy PowerShell console maps DarkMagenta to its blue
+            # background, which would make this line invisible there.
+            Write-Host "Chocolatey is missing." -ForegroundColor Red
             throw "Neither Winget nor Chocolatey present. PowerShell Core installation cannot continue."
         }
     }
 
     $availableVersions = @()
     if ($wingetCommand) {
+        Write-Host "Querying WinGet for the available PowerShell Core versions (any warnings below come from WinGet)..." -ForegroundColor Yellow
         $availableVersions = @(Get-AvailablePowerShellVersions)
     }
 
     # Detection uses -AllUsers, which needs the elevation asserted above.
     Remove-PowerShellMsixPackage -NewestAvailableVersion ($availableVersions | Select-Object -First 1)
 
-    Write-Host "Checking if PowerShell Core is already installed..."  -ForegroundColor DarkYellow
-    $pwshCommand = Get-Command pwsh -ErrorAction SilentlyContinue | Select-Object -First 1
+    Write-Host "Checking if PowerShell Core is already installed..." -ForegroundColor Yellow
+    $pwshCommand = Get-InstalledPwshCommand
     if ($pwshCommand) {
-        Write-Host "PowerShell Core is already installed." -ForegroundColor DarkGreen
-        Write-Host "Current PowerShell Core version: $($pwshCommand.Version.ToString())" -ForegroundColor DarkGreen
-        Write-Host "Running the installer anyway to apply any available update."  -ForegroundColor DarkYellow
+        Write-Host "PowerShell Core is already installed." -ForegroundColor Green
+        Write-Host "Current PowerShell Core version: $($pwshCommand.Version.ToString())" -ForegroundColor Green
+        Write-Host "Running the installer anyway to apply any available update." -ForegroundColor Yellow
     }
     else {
-        Write-Host "PowerShell Core is not yet installed."  -ForegroundColor DarkYellow
+        Write-Host "PowerShell Core is not yet installed." -ForegroundColor Yellow
     }
 
+    $restartPending = $false
     if ($wingetCommand) {
-        Install-PowerShellMsiViaWinget -AvailableVersions $availableVersions
+        $restartPending = Install-PowerShellMsiViaWinget -AvailableVersions $availableVersions
     }
     else {
-        Write-Host "Installing PowerShell Core via Chocolatey" -ForegroundColor DarkYellow
+        Write-Host "Installing PowerShell Core via Chocolatey" -ForegroundColor Yellow
         # Invoke the exact binary the presence check above verified. Calling bare `choco` would
         # resolve through the session PATH, which may not yet contain Chocolatey's bin directory
         # (typical when Chocolatey was installed after this terminal opened). That fails with a
         # non-terminating CommandNotFoundException and leaves a stale $LASTEXITCODE from the last
-        # native command (often 0), which would masquerade as success. Running $chocoInstallPath
+        # native command (often 0), which would masquerade as success. Running $chocoExePath
         # directly makes that impossible: either the verified binary runs and sets a fresh exit
         # code, or the call fails loudly.
-        & $chocoInstallPath install powershell-core -y --packageparameters '"/CleanUpPath"'
+        # The package parameter stays quote-free so PS 5.1 and PS 7.3+ pass it identically
+        # (7.3+ escapes embedded quotes into the child's argv).
+        Write-Host "The Chocolatey package downloads PowerShell's MSI from its official release channel (github.com/PowerShell/PowerShell) and verifies its checksum before installing." -ForegroundColor Yellow
+        Write-Host "`n---- Chocolatey output begins ----" -ForegroundColor Magenta
+        Write-Host ""
+        & $chocoExePath install powershell-core -y --packageparameters '/CleanUpPath'
         $chocoExitCode = $LASTEXITCODE
+        Write-Host "`n---- Chocolatey output ends ----" -ForegroundColor Magenta
+        Write-Host ""
         # 1641 and 3010 mean the install succeeded and a reboot is pending.
         if (@(0, 1641, 3010) -notcontains $chocoExitCode) {
             throw "Chocolatey failed to install PowerShell Core (exit code $chocoExitCode)."
+        }
+        if (@(1641, 3010) -contains $chocoExitCode) {
+            Write-Host "PowerShell Core installed. A system restart is required to finish the installation." -ForegroundColor DarkYellow
+            $restartPending = $true
         }
     }
 
     # The MSI installs to C:\Program Files\PowerShell\7 and updates the machine PATH, which this
     # session cannot see. Add any missing entries so later steps in this session can resolve pwsh.
     # Entries are appended rather than replaced so session-local PATH additions survive.
-    $registryPath = @(
+    $persistedPathEntries = @(
         [Environment]::GetEnvironmentVariable('Path', 'Machine')
         [Environment]::GetEnvironmentVariable('Path', 'User')
-    ) -join ';'
-    foreach ($pathEntry in ($registryPath -split ';' | Where-Object { $_ })) {
-        if (($env:Path -split ';') -notcontains $pathEntry) {
-            $env:Path += ";$pathEntry"
-        }
+    ) -split ';' | Where-Object { $_ }
+    $sessionPathEntries = $env:Path -split ';'
+    $missingPathEntries = @($persistedPathEntries |
+        Where-Object { $sessionPathEntries -notcontains $_ } |
+        Select-Object -Unique)
+    if ($missingPathEntries.Count -gt 0) {
+        $env:Path = (@($env:Path) + $missingPathEntries) -join ';'
     }
 
-    Write-Host "Verifying PowerShell Core installation..."  -ForegroundColor DarkYellow
+    Write-Host "Verifying PowerShell Core installation..." -ForegroundColor Yellow
     # Both install routes place the MSI in Program Files\PowerShell\7, so that exact path is checked
-    # first. The PATH search is only a fallback for nonstandard install locations, and dead app
-    # execution alias stubs (zero-byte files reporting version 0.0.0.0) are rejected.
+    # first. The PATH search is only a fallback for nonstandard install locations.
     $pwshPath = Join-Path $Env:ProgramFiles 'PowerShell\7\pwsh.exe'
     if (-not (Test-Path $pwshPath)) {
-        $pwshCommand = Get-Command pwsh -ErrorAction SilentlyContinue |
-            Where-Object { $_.Version -and $_.Version -ne [version]'0.0.0.0' } |
-            Select-Object -First 1
+        $pwshCommand = Get-InstalledPwshCommand
         $pwshPath = if ($pwshCommand) { $pwshCommand.Source } else { $NULL }
     }
 
     $installedVersion = $NULL
     if ($pwshPath) {
         # Resolving a path is not proof the binary runs; execute it and read the real version.
-        $installedVersion = & $pwshPath -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
+        try {
+            $installedVersion = & $pwshPath -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
+            if ($LASTEXITCODE -ne 0) {
+                $installedVersion = $NULL
+            }
+        }
+        catch {
+            Write-Host "Executing $pwshPath failed: $($_.Exception.Message)" -ForegroundColor Red
+        }
     }
-    if ($installedVersion -and $LASTEXITCODE -eq 0) {
-        Write-Host "PowerShell Core installation successful." -ForegroundColor DarkGreen
-        Write-Host "Installed PowerShell Core version: $installedVersion" -ForegroundColor DarkGreen
-        return "PowerShell Core installation successful."
+    if ($installedVersion) {
+        Write-Host "PowerShell Core installation successful." -ForegroundColor Green
+        Write-Host "Installed PowerShell Core version: $installedVersion" -ForegroundColor Green
+    }
+    elseif ($restartPending) {
+        Write-Host "pwsh cannot be verified yet: the pending system restart must complete the installation first." -ForegroundColor DarkYellow
+        Write-Host "After restarting, verify by running pwsh." -ForegroundColor DarkYellow
     }
     else {
-        Write-Host "PowerShell Core installation failed."  -ForegroundColor DarkRed
+        Write-Host "PowerShell Core installation failed." -ForegroundColor Red
         throw "PowerShell Core installation failed."
     }
 }
