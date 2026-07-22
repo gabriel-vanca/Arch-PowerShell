@@ -6,15 +6,12 @@
 .EXAMPLE
 	PS> ./ArchPowerShell
 .LINK
-	https://github.com/gabriel-vanca/https://github.com/gabriel-vanca/Arch-PowerShell
+	https://github.com/gabriel-vanca/Arch-PowerShell
 .NOTES
 	Author: Gabriel Vanca
 #>
 
 #Requires -PSEdition Core
-
-# Force use of TLS 1.3 for all downloads.
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls13
 
 # TODO [String]$VersionToLookFor = "14.0.30704.0"
 # TODO [Switch]$ChocolateyInstalled = $False
@@ -28,8 +25,8 @@ Write-Host "On Windows you need to run this script from a terminal with admin pr
 #Check Administrator privileges manually
 # ($NULL -eq $IsWindows) checks for Windows Sandbox enviroment
 if ($IsWindows -or ($NULL -eq $IsWindows)) {
-	$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-	if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) -eq $true) {
+	$currentPrincipal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
+	if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
 		Write-Host "This session is running with Administrator privileges." -ForegroundColor DarkGreen
 	}
  else {
